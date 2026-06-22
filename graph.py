@@ -1,28 +1,31 @@
 """
 graph.py — LangGraph pipeline
-===============================
-Wires the three agents as graph nodes with conditional routing:
+================================
+Full pipeline:
 
     START
       │
       ▼
-  [parse_input]          → extracts structured attributes from any input
+  [parse_input]
       │
       ▼
-  [clean_data]           → normalizes and validates the attributes
+  [clean_data]
       │
-      ├── has flags? ──► [flag_review]   → prints warnings, continues anyway
+      ├── has flags? ──► [flag_review]
       │                       │
       └───────────────────────┘
       │
       ▼
-  [generate_title]       → produces marketplace-optimized titles
+  [generate_title]
+      │
+      ▼
+  [write_description]
+      │
+      ▼
+  [generate_bullets]
       │
       ▼
     END
-
-Each node reads from ProductState and writes its results back.
-LangGraph handles passing state between nodes automatically.
 """
 
 from langgraph.graph import StateGraph, END
@@ -30,15 +33,16 @@ from state import ProductState
 from tools.input_parser_tool import parse_input_tool
 from tools.data_cleaner_tool import clean_data_tool
 from tools.title_generator_tool import generate_title_tool
+from tools.description_writer_tool import write_description_tool
+from tools.bullet_generator_tool import generate_bullets_tool
 
 
 # ---------------------------------------------------------------------------
-# Nodes — each receives the full state dict, returns partial updates
+# Nodes
 # ---------------------------------------------------------------------------
 
 def parse_input_node(state: ProductState) -> dict:
-    """Node 1: Parse any input format into structured attributes."""
-    print("\n[1/3] Parsing input...")
+    print("\n[1/5] Parsing input...")
     result = parse_input_tool.invoke({
         "raw_input": state["raw_input"],
         "model": state["model"],
@@ -48,8 +52,7 @@ def parse_input_node(state: ProductState) -> dict:
 
 
 def clean_data_node(state: ProductState) -> dict:
-    """Node 2: Clean and normalize the parsed attributes."""
-    print("\n[2/3] Cleaning data...")
+    print("\n[2/5] Cleaning data...")
     result = clean_data_tool.invoke({
         "attributes": state["parsed_attributes"],
         "model": state["model"],
@@ -66,16 +69,14 @@ def clean_data_node(state: ProductState) -> dict:
 
 
 def flag_review_node(state: ProductState) -> dict:
-    """Node 3a (conditional): Surface flags for human review."""
     print("\n⚠ DATA FLAGS — review before publishing:")
     for flag in state["cleaning_flags"]:
         print(f"   • {flag}")
-    return {}   # no state changes, just a warning gate
+    return {}
 
 
 def generate_title_node(state: ProductState) -> dict:
-    """Node 3b: Generate marketplace-optimized titles."""
-    print(f"\n[3/3] Generating {state['title_count']} title(s) for '{state['marketplace']}'...")
+    print(f"\n[3/5] Generating {state['title_count']} title(s) for '{state['marketplace']}'...")
     results = generate_title_tool.invoke({
         "attributes": state["cleaned_attributes"],
         "marketplace": state["marketplace"],
@@ -87,47 +88,74 @@ def generate_title_node(state: ProductState) -> dict:
     return {"titles": results}
 
 
+def write_description_node(state: ProductState) -> dict:
+    print(f"\n[4/5] Writing description ({state['output_format']} format)...")
+    result = write_description_tool.invoke({
+        "attributes": state["cleaned_attributes"],
+        "marketplace": state["marketplace"],
+        "output_format": state["output_format"],
+        "model": state["model"],
+    })
+    print(f"      ✓ {result['word_count']} words, {len(result['keywords_used'])} keywords used")
+    return {
+        "description":          result["description"],
+        "description_word_count": result["word_count"],
+        "description_keywords": result["keywords_used"],
+    }
+
+
+def generate_bullets_node(state: ProductState) -> dict:
+    print(f"\n[5/5] Generating {state['bullet_count']} bullet points...")
+    result = generate_bullets_tool.invoke({
+        "attributes": state["cleaned_attributes"],
+        "marketplace": state["marketplace"],
+        "count": state["bullet_count"],
+        "model": state["model"],
+    })
+    status = "✓ all valid" if result["valid"] else f"⚠ {len(result['issues'])} issue(s)"
+    print(f"      {status} — {result['bullet_count']} bullets generated")
+    return {
+        "bullets":        result["bullets"],
+        "bullets_valid":  result["valid"],
+        "bullets_issues": result["issues"],
+    }
+
+
 # ---------------------------------------------------------------------------
-# Conditional edge — route through flag_review only when flags exist
+# Conditional edge
 # ---------------------------------------------------------------------------
 
 def should_flag(state: ProductState) -> str:
-    """Return 'flag' if there are cleaning flags, else go straight to titles."""
     return "flag" if state.get("cleaning_flags") else "title"
 
 
 # ---------------------------------------------------------------------------
-# Build the graph
+# Build graph
 # ---------------------------------------------------------------------------
 
 def build_graph() -> StateGraph:
     graph = StateGraph(ProductState)
 
-    # Register nodes
-    graph.add_node("parse_input",     parse_input_node)
-    graph.add_node("clean_data",      clean_data_node)
-    graph.add_node("flag_review",     flag_review_node)
-    graph.add_node("generate_title",  generate_title_node)
+    graph.add_node("parse_input",       parse_input_node)
+    graph.add_node("clean_data",        clean_data_node)
+    graph.add_node("flag_review",       flag_review_node)
+    graph.add_node("generate_title",    generate_title_node)
+    graph.add_node("write_description", write_description_node)
+    graph.add_node("generate_bullets",  generate_bullets_node)
 
-    # Edges
     graph.set_entry_point("parse_input")
     graph.add_edge("parse_input", "clean_data")
-
-    # Conditional: if data has flags → show review node first
     graph.add_conditional_edges(
         "clean_data",
         should_flag,
-        {
-            "flag":  "flag_review",
-            "title": "generate_title",
-        },
+        {"flag": "flag_review", "title": "generate_title"},
     )
-
-    graph.add_edge("flag_review",    "generate_title")
-    graph.add_edge("generate_title", END)
+    graph.add_edge("flag_review",       "generate_title")
+    graph.add_edge("generate_title",    "write_description")
+    graph.add_edge("write_description", "generate_bullets")
+    graph.add_edge("generate_bullets",  END)
 
     return graph.compile()
 
 
-# Singleton — import this in run.py
 pipeline = build_graph()

@@ -1,33 +1,40 @@
 """
 state.py — Shared LangGraph state schema
-=========================================
-This is the single object that flows through every node in the graph.
-Each agent reads from it and writes its results back into it.
-LangGraph handles passing it between nodes automatically.
 """
-
 from typing import TypedDict, Optional, List, Dict, Any
 
 
 class ProductState(TypedDict):
     # --- Input ---
-    raw_input: str                        # original raw text / file path / JSON string
+    raw_input: str
 
-    # --- After input_parser_node ---
-    parsed_attributes: Dict[str, Any]     # structured product attributes
+    # --- After parse_input_node ---
+    parsed_attributes: Dict[str, Any]
 
-    # --- After data_cleaner_node ---
-    cleaned_attributes: Dict[str, Any]    # cleaned + normalized attributes
-    cleaning_changes: List[str]           # audit log of what changed
-    cleaning_flags: List[str]             # fields that need human review
+    # --- After clean_data_node ---
+    cleaned_attributes: Dict[str, Any]
+    cleaning_changes: List[str]
+    cleaning_flags: List[str]
 
-    # --- After title_generator_node ---
-    titles: List[Dict[str, Any]]          # list of title results with validation
+    # --- After generate_title_node ---
+    titles: List[Dict[str, Any]]
 
-    # --- Config (set at start, read by all nodes) ---
-    marketplace: str                      # amazon | walmart | etsy | generic
-    title_count: int                      # how many title options to generate
-    model: str                            # OpenRouter model id
+    # --- After write_description_node ---
+    description: str
+    description_word_count: int
+    description_keywords: List[str]
 
-    # --- Errors (any node can write here) ---
+    # --- After generate_bullets_node ---
+    bullets: List[str]
+    bullets_valid: bool
+    bullets_issues: List[str]
+
+    # --- Config ---
+    marketplace: str
+    title_count: int
+    bullet_count: int
+    output_format: str       # plain | html
+    model: str
+
+    # --- Errors ---
     errors: List[str]
