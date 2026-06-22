@@ -1,4 +1,4 @@
-LangGraph pipeline: Input Parser → Data Cleaner → Title Generator
+LangGraph pipeline: Input Parser → Data Cleaner → Title Generator →  write_description → generate_bullets
 
 
 ## Setup
