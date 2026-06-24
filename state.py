@@ -1,7 +1,7 @@
 """
 state.py — Shared LangGraph state schema
 """
-from typing import TypedDict, Optional, List, Dict, Any
+from typing import TypedDict, List, Dict, Any
 
 
 class ProductState(TypedDict):
@@ -29,11 +29,36 @@ class ProductState(TypedDict):
     bullets_valid: bool
     bullets_issues: List[str]
 
+    # --- After generate_keywords_node ---
+    primary_keywords: List[str]
+    secondary_keywords: List[str]
+    tags: List[str]
+    backend_keywords: str
+    keywords_valid: bool
+
+    # --- After generate_faq_node ---
+    faqs: List[Dict[str, str]]
+    faq_categories: List[str]
+
+    # --- After grammar_qa_node ---
+    grammar_issues: List[str]
+    grammar_clean: bool
+    corrected_description: str
+    readability: str
+
+    # --- After meta_seo_node ---
+    meta_title: str
+    meta_description: str
+    meta_title_valid: bool
+    meta_desc_valid: bool
+    meta_issues: List[str]
+
     # --- Config ---
     marketplace: str
     title_count: int
     bullet_count: int
-    output_format: str       # plain | html
+    faq_count: int
+    output_format: str
     model: str
 
     # --- Errors ---
