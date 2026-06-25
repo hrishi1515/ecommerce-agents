@@ -53,12 +53,34 @@ class ProductState(TypedDict):
     meta_desc_valid: bool
     meta_issues: List[str]
 
+    # --- After brand_voice_node ---
+    brand_score: int
+    brand_on_brand: bool
+    brand_issues: List[str]
+    brand_rewritten: str
+    brand_suggestions: List[str]
+
+    # --- After ad_copy_node ---
+    ad_headlines: List[str]
+    ad_short_copy: str
+    ad_long_copy: str
+    ad_cta: str
+
+    # --- After social_media_node ---
+    social_instagram: Dict[str, Any]
+    social_facebook: Dict[str, Any]
+    social_twitter: Dict[str, Any]
+    social_linkedin: Dict[str, Any]
+
     # --- Config ---
     marketplace: str
     title_count: int
     bullet_count: int
     faq_count: int
     output_format: str
+    ad_platform: str
+    ad_audience: str
+    brand_guide: str
     model: str
 
     # --- Errors ---
