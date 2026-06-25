@@ -21,9 +21,6 @@ Takes raw product data as input and generates everything needed for a complete m
 | 10 | Brand Voice Checker | Checks and rewrites content to match brand style |
 | 11 | Ad Copy Generator | Sponsored ad headlines and copy |
 | 12 | Social Media Repurposer | Instagram, Facebook, Twitter, LinkedIn posts |
-| 13 | Review Response | Drafts replies to customer reviews |
-| 14 | Customer Q&A Responder | Answers buyer questions from product data |
-| 15 | Email Generator | Marketing email copy (launch, promo, newsletter, etc.) |
 
 ---
 
