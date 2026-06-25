@@ -5,7 +5,7 @@ Takes raw product data as input and generates everything needed for a complete m
 
 ---
 
-## Agents (15 total)
+## Agents (12 total)
 
 | # | Agent | What it does |
 |---|-------|-------------|
